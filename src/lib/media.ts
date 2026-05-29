@@ -1,17 +1,10 @@
 /**
- * Exercise media resolver.
+ * Optional real-media resolver for exercises.
  *
- * Resolves a representative image and a looping demonstration for an exercise
- * from a free, open-licensed source, with a clean placeholder fallback when
- * media is unavailable (offline, blocked, or no match):
- *
- *   1. ExerciseDB (looping GIF) - used only when an API key is provided via the
- *      EXPO_PUBLIC_EXERCISEDB_API_KEY environment variable (see README).
- *   2. wger (static image) - keyless, used as the default attempt.
- *   3. Placeholder - a calm SVG glyph rendered by the ExerciseMedia component.
- *
- * All network calls are wrapped in try/catch with a timeout so a failure never
- * breaks the screen; it simply falls back to the placeholder.
+ * By default FitTrack shows on-device SVG animations (see ExerciseAnimation),
+ * which need no configuration. If an ExerciseDB (RapidAPI) key is provided via
+ * EXPO_PUBLIC_EXERCISEDB_API_KEY, a real looping GIF is fetched and shown
+ * instead. Without a key, no network request is made and the animation is used.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -21,11 +14,9 @@ import type { Exercise } from '../types';
 const EXERCISEDB_KEY = process.env.EXPO_PUBLIC_EXERCISEDB_API_KEY;
 const EXERCISEDB_HOST =
   process.env.EXPO_PUBLIC_EXERCISEDB_HOST ?? 'exercisedb.p.rapidapi.com';
-
-const WGER_BASE = 'https://wger.de';
 const FETCH_TIMEOUT_MS = 6000;
 
-export type MediaStatus = 'loading' | 'ready' | 'placeholder';
+export type MediaStatus = 'loading' | 'ready' | 'none';
 
 export interface ExerciseMedia {
   status: MediaStatus;
@@ -35,7 +26,7 @@ export interface ExerciseMedia {
   imageUrl: string | null;
 }
 
-/** Simple in-memory cache so revisiting an exercise does not refetch. */
+const NONE: ExerciseMedia = { status: 'none', animationUrl: null, imageUrl: null };
 const cache = new Map<string, ExerciseMedia>();
 
 async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
@@ -69,52 +60,29 @@ export async function fetchExerciseDbGif(query: string): Promise<string | null> 
   }
 }
 
-/** wger static exercise image by search term. Keyless and open-licensed. */
-export async function fetchWgerImage(query: string): Promise<string | null> {
-  try {
-    const url = `${WGER_BASE}/api/v2/exercise/search/?language=english&format=json&term=${encodeURIComponent(
-      query,
-    )}`;
-    const res = await fetchWithTimeout(url);
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      suggestions?: { data?: { image?: string | null; image_thumbnail?: string | null } }[];
-    };
-    const hit = data.suggestions?.find((s) => s.data?.image || s.data?.image_thumbnail);
-    const path = hit?.data?.image ?? hit?.data?.image_thumbnail ?? null;
-    if (!path) return null;
-    return path.startsWith('http') ? path : `${WGER_BASE}${path}`;
-  } catch {
-    return null;
-  }
-}
-
-/** Resolve media for one exercise, trying the GIF source first, then the image. */
+/** Resolve optional real media for an exercise (GIF if an API key is set). */
 export async function resolveExerciseMedia(exercise: Exercise): Promise<ExerciseMedia> {
   const cached = cache.get(exercise.id);
   if (cached) return cached;
-
-  const [animationUrl, imageUrl] = await Promise.all([
-    fetchExerciseDbGif(exercise.mediaQuery),
-    fetchWgerImage(exercise.mediaQuery),
-  ]);
-
-  const result: ExerciseMedia =
-    animationUrl || imageUrl
-      ? { status: 'ready', animationUrl, imageUrl }
-      : { status: 'placeholder', animationUrl: null, imageUrl: null };
-
+  if (!EXERCISEDB_KEY) {
+    cache.set(exercise.id, NONE);
+    return NONE;
+  }
+  const animationUrl = await fetchExerciseDbGif(exercise.mediaQuery);
+  const result: ExerciseMedia = animationUrl
+    ? { status: 'ready', animationUrl, imageUrl: null }
+    : NONE;
   cache.set(exercise.id, result);
   return result;
 }
 
 /**
- * React hook that resolves media for an exercise. Returns `loading` until the
- * lookup settles, then `ready` (with at least one URL) or `placeholder`.
+ * React hook returning optional real media for an exercise. Resolves to `none`
+ * immediately when no API key is configured (the animation is then used).
  */
 export function useExerciseMedia(exercise: Exercise): ExerciseMedia {
   const [media, setMedia] = useState<ExerciseMedia>(
-    () => cache.get(exercise.id) ?? { status: 'loading', animationUrl: null, imageUrl: null },
+    () => cache.get(exercise.id) ?? (EXERCISEDB_KEY ? { status: 'loading', animationUrl: null, imageUrl: null } : NONE),
   );
   const exerciseId = exercise.id;
   const mountedRef = useRef(true);
@@ -126,6 +94,10 @@ export function useExerciseMedia(exercise: Exercise): ExerciseMedia {
       setMedia(existing);
       return;
     }
+    if (!EXERCISEDB_KEY) {
+      setMedia(NONE);
+      return;
+    }
     setMedia({ status: 'loading', animationUrl: null, imageUrl: null });
     resolveExerciseMedia(exercise).then((result) => {
       if (mountedRef.current) setMedia(result);
@@ -133,7 +105,6 @@ export function useExerciseMedia(exercise: Exercise): ExerciseMedia {
     return () => {
       mountedRef.current = false;
     };
-    // Re-run only when the exercise changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
 

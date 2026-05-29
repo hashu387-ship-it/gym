@@ -15,8 +15,8 @@ sustainable, muscle-preserving rate of fat loss of about 0.5 to 1 kg per week.
   status note.
 - **Workouts** - the embedded 6-day Push/Pull/Legs split (plus Sunday active
   recovery), the progressive-overload rule, and cardio/steps guidance. Each day
-  opens to its exercises; each exercise has a representative image / looping
-  demonstration with a clean placeholder fallback, a one-line form cue, and
+  opens to its exercises; each exercise has a looping on-device animation of the
+  movement (or a real GIF if an ExerciseDB key is set), a one-line form cue, and
   per-set logging (weight and reps).
 - **Nutrition** - a built-in 7-day rotating halal meal plan (3 meals + 2 snacks
   per day) using affordable Gulf-region staples, animated macro rings, per-item
@@ -55,17 +55,13 @@ npm run web
 
 ### Exercise media and API keys
 
-Exercise images and looping demos are resolved at runtime with a graceful
-fallback chain, so the app runs with no configuration:
+Every exercise shows a looping on-device animation of its movement pattern
+(built with react-native-svg + reanimated). These need no configuration, no
+network, and no API key, and work on web and native.
 
-1. **ExerciseDB** (looping GIF) - used only if you provide a RapidAPI key.
-2. **wger** (static image) - keyless, the default attempt.
-3. **Placeholder** - a clean glyph shown while loading or when no media is
-   available (offline or no match).
-
-To enable ExerciseDB GIFs, copy `.env.example` to `.env` and set
-`EXPO_PUBLIC_EXERCISEDB_API_KEY` (see the file for details). wger requires no
-key.
+Optionally, set an ExerciseDB (RapidAPI) key to show real demonstration GIFs
+instead: copy `.env.example` to `.env` and set `EXPO_PUBLIC_EXERCISEDB_API_KEY`
+(see the file). Without a key, the built-in animations are used.
 
 ## Nutrition and safety model
 
@@ -127,7 +123,7 @@ npm run lint       # expo lint
 
 - App icons and the splash image are Expo's default placeholders; replace the
   files in `assets/images` for a production build.
-- Exercise media requires a network connection; the placeholder is shown
-  otherwise. The app is otherwise fully offline.
+- Exercise demonstrations are on-device animations and work offline. A real GIF
+  source (ExerciseDB) is optional and requires an API key.
 - The native app must be run via Expo on a device or simulator; it cannot be
   exercised headlessly.

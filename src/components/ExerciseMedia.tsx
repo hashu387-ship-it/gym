@@ -1,16 +1,17 @@
 /**
- * Shows an exercise's looping demonstration (or still image) resolved from a
- * free media source, with a clean placeholder while loading or when media is
- * unavailable. A failed image load also falls back to the placeholder.
+ * Shows an exercise's demonstration. By default this is an on-device looping
+ * SVG animation (no setup required). If an ExerciseDB API key is configured and
+ * returns a GIF, that real demonstration is shown instead; a failed image load
+ * falls back to the animation.
  */
 
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { ExerciseAnimation } from '@/components/ExerciseAnimation';
+import { Radius } from '@/constants/theme';
+import { getExercisePattern } from '@/data/exercisePatterns';
 import { useTheme } from '@/hooks/use-theme';
 import { useExerciseMedia } from '@/lib/media';
 import type { Exercise } from '@/types';
@@ -20,12 +21,10 @@ export function ExerciseMedia({ exercise, height = 210 }: { exercise: Exercise; 
   const media = useExerciseMedia(exercise);
   const [failed, setFailed] = useState(false);
 
-  // Reset the failed flag when the exercise changes.
   useEffect(() => setFailed(false), [exercise.id]);
 
   const uri = media.animationUrl ?? media.imageUrl;
   const showImage = !!uri && !failed;
-  const loading = media.status === 'loading' && !uri;
 
   return (
     <View style={[styles.box, { height, backgroundColor: theme.backgroundElement }]}>
@@ -39,15 +38,8 @@ export function ExerciseMedia({ exercise, height = 210 }: { exercise: Exercise; 
           accessibilityLabel={`${exercise.name} demonstration`}
         />
       ) : (
-        <View style={styles.center}>
-          {loading ? (
-            <ActivityIndicator color={theme.textMuted} />
-          ) : (
-            <Ionicons name="barbell-outline" size={40} color={theme.textMuted} />
-          )}
-          <AppText variant="caption" color="textMuted" style={{ marginTop: Spacing.two }}>
-            {loading ? 'Loading demonstration' : 'Demonstration unavailable'}
-          </AppText>
+        <View style={StyleSheet.absoluteFill}>
+          <ExerciseAnimation pattern={getExercisePattern(exercise.id)} />
         </View>
       )}
     </View>
@@ -60,5 +52,4 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     overflow: 'hidden',
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
