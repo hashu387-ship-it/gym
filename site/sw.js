@@ -1,8 +1,8 @@
 /* Apex service worker: offline support with always-fresh updates.
    Navigations are network-first (so new deploys appear immediately) with a
    cached fallback for offline; static assets are cache-first. */
-const CACHE = "apex-v3";
-const PRECACHE = ["./", "./index.html", "./manifest.json", "./icon.svg"];
+const CACHE = "apex-v4";
+const PRECACHE = ["./", "./index.html", "./app.js", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

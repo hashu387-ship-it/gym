@@ -1,129 +1,57 @@
-# FitTrack
+# Apex
 
-A personal, offline-first fat-loss companion built with Expo (React Native +
-TypeScript). FitTrack is designed for a single user and built around a
-sustainable, muscle-preserving rate of fat loss of about 0.5 to 1 kg per week.
+A personal, installable, offline-first web app that combines training, food and
+RICS APC study into one calm daily system. Built for a single user (work
+Sunday-Thursday, Gulf region), targeting steady fat loss from 98 kg toward
+78 kg at a safe pace, with the APC in November.
 
-> FitTrack is a personal guide, not medical advice. Consult a doctor before
-> starting any diet or training plan, especially if you have a health
-> condition.
+Live: https://gym-hashu387-ship-its-projects.vercel.app
 
 ## Features
 
-- **Dashboard** - current vs target weight, calories and macros remaining today
-  (animated rings), today's workout summary, water progress, and a calm safety
-  status note.
-- **Workouts** - the embedded 6-day Push/Pull/Legs split (plus Sunday active
-  recovery), the progressive-overload rule, and cardio/steps guidance. Each day
-  opens to its exercises; each exercise has a looping on-device animation of the
-  movement (or a real GIF if an ExerciseDB key is set), a one-line form cue, and
-  per-set logging (weight and reps).
-- **Nutrition** - a built-in 7-day rotating halal meal plan (3 meals + 2 snacks
-  per day) using affordable Gulf-region staples, animated macro rings, per-item
-  check-offs, macro-equivalent swap suggestions, and a ~3 L water tracker.
-- **Progress** - a weight line chart that draws itself in, with the projected
-  sustainable trend overlaid, weekly averages, a logging streak, and milestone
-  markers.
-- **Profile / Settings** - editable stats, activity level, deficit and protein
-  targets, units (metric/imperial), light/dark/system theme, the guiding
-  principles, the safety disclaimer, and export-to-JSON.
+- **Bilingual** English / Arabic with full right-to-left support (toggle in the
+  header, preference saved).
+- **Home** - animated dashboard: daily completion ring, streaks, a rotating
+  motivational line, live stat strip, and an hour-by-hour schedule built around
+  the real routine **with computed prayer times** (Umm al-Qura) merged in and a
+  pulsing now-marker. City selectable (Riyadh, Jeddah, Makkah, Madinah, Dammam).
+- **Train** - a 6-day program (Upper/Lower split + recovery walk + weekend
+  conditioning) with per-exercise animated demonstrations, form cues and common
+  mistakes, a **"Watch video"** link (opens a proper-form search), RPE and rest
+  prescriptions, per-set logging, **auto-coaching** that suggests adding load
+  when you hit the top of a rep range, a rest-timer sheet with screen wake lock,
+  and adaptation/build/push phase guidance.
+- **Fuel** - calorie and macro targets recalculated from logged weight, a timed
+  meal schedule (workday vs day off), recipes with macros, plate rule, water
+  tracker, and Saudi eating-out picks.
+- **Study** - RICS APC countdown, focus timer, milestones, QS competencies,
+  study streak.
+- **Progress** - animated weight chart with goal line, waist log, BMI now vs
+  goal, weekly auto-review, editable details, and JSON backup.
+- **Installable PWA** - manifest, icon, and a service worker (network-first
+  navigations, cache-first assets) so it installs to the home screen and works
+  offline.
 
-No login, no account, no cloud. All data stays on the device.
+Health-first: no crash dieting or fat-burner content; steady 0.5-1 kg/week with
+doctor / blood-test reminders.
 
-## Tech stack
-
-- Expo SDK 56, React Native 0.85, expo-router (file-based navigation)
-- react-native-reanimated + react-native-svg for animation (macro rings,
-  chart line draw-in, tab transitions) and expo-haptics for tactile feedback
-- expo-sqlite for logs, AsyncStorage for settings, expo-file-system +
-  expo-sharing for JSON export
-- TypeScript throughout; calculation logic is framework-free and unit-tested
-
-## Getting started
-
-Prerequisites: Node 18+ and the Expo tooling (`npx expo`). To run on a device,
-install Expo Go, or build a development client.
-
-```bash
-npm install
-npm start          # then press i / a, or scan the QR code with Expo Go
-# or target a platform directly:
-npm run ios
-npm run android
-npm run web
-```
-
-### Exercise media and API keys
-
-Every exercise shows a looping on-device animation of its movement pattern
-(built with react-native-svg + reanimated). These need no configuration, no
-network, and no API key, and work on web and native.
-
-Optionally, set an ExerciseDB (RapidAPI) key to show real demonstration GIFs
-instead: copy `.env.example` to `.env` and set `EXPO_PUBLIC_EXERCISEDB_API_KEY`
-(see the file). Without a key, the built-in animations are used.
-
-## Nutrition and safety model
-
-- **BMR** via Mifflin-St Jeor; **TDEE** = BMR x activity multiplier (default
-  moderate, 1.55).
-- **Deficit** is clamped to a sustainable 500-750 kcal/day, so the app cannot
-  configure a crash diet.
-- **Protein** 1.8-2.2 g/kg of current body weight (recalculated as logged
-  weight changes), **fat** ~25% of calories, **carbohydrates** fill the
-  remainder and are weighted around training.
-- A hard **1,500 kcal/day floor**: if a deficit would push the target below it,
-  the target is held at 1,500 and a doctor-supervision note is shown. Logged
-  intake that is very low, or that implies losing faster than ~1 kg/week, raises
-  a calm amber note.
-
-For the default profile (male, 32, 165 cm, 98 kg, moderate activity, 600 kcal
-deficit) this yields about 2,277 kcal/day with ~196 g protein, ~231 g carbs,
-and ~63 g fat. Every day of the built-in meal plan is verified to land within
-8% of the calorie target and to meet the protein-first guidance.
-
-## Data and persistence
-
-SQLite (`fittrack.db`) stores `weight_entries`, `set_logs`, `completions`
-(meal and workout check-offs), and `water`. The profile and app flags live in
-AsyncStorage. The charts read from this persistent history. Profile > Your data
-> "Export data to JSON" writes a full backup and opens the share sheet.
-
-## Project structure
+## Structure
 
 ```
-src/
-  app/                     # expo-router screens
-    _layout.tsx            # providers + stack + disclaimer gate
-    (tabs)/                # Dashboard, Workouts, Nutrition, Progress, Profile
-    workout/[dayId].tsx    # a day's exercises
-    exercise/[exerciseId].tsx  # media, form cue, progression, set logging
-  components/              # UI primitives + animated rings, chart, etc.
-  constants/theme.ts       # calm palette, spacing, type ramp, radii
-  data/                    # foods, 7-day meal plan, workout split, guidance
-  db/                      # SQLite layer + AsyncStorage settings
-  lib/                     # exercise media resolver, JSON export
-  logic/                   # framework-free engines (nutrition, progression,
-                           # cardio, progress analytics) - all unit-tested
-  providers/               # app-data and theme contexts
-tests/                     # Node unit tests for logic and data
-docs/SPEC.md               # the original product brief
+site/
+  index.html     # markup, styles, PWA wiring
+  app.js         # all logic: i18n, prayer-time calc, data, renderers
+  sw.js          # service worker (offline)
+  manifest.json  # PWA manifest
+  icon.svg       # app icon
+vercel.json      # serves the static site/ directory
 ```
 
-## Scripts
+## Develop / deploy
 
-```bash
-npm test           # unit tests for the calculation logic and meal-plan math
-npm run typecheck  # tsc --noEmit
-npm run check:meals  # print each plan day's totals vs the computed targets
-npm run lint       # expo lint
-```
+No build step. Open `site/index.html` in a browser, or serve `site/` with any
+static server. Vercel serves `site/` directly (see `vercel.json`); pushing to
+`main` deploys.
 
-## Notes and limitations
-
-- App icons and the splash image are Expo's default placeholders; replace the
-  files in `assets/images` for a production build.
-- Exercise demonstrations are on-device animations and work offline. A real GIF
-  source (ExerciseDB) is optional and requires an API key.
-- The native app must be run via Expo on a device or simulator; it cannot be
-  exercised headlessly.
+All data is stored locally in the browser (`localStorage`); there is no backend
+and no account.
