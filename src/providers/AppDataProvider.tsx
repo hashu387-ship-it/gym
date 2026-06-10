@@ -10,6 +10,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -44,6 +45,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
   const [revision, setRevision] = useState(0);
+  // Mirror of the latest profile so rapid successive edits compose correctly
+  // (avoids a stale-closure race that could drop a setting change).
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   useEffect(() => {
     let mounted = true;
@@ -63,14 +70,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const updateProfile = useCallback(
-    async (patch: Partial<UserProfile>) => {
-      const next = { ...profile, ...patch };
-      setProfile(next);
-      await saveProfile(next);
-    },
-    [profile],
-  );
+  const updateProfile = useCallback(async (patch: Partial<UserProfile>) => {
+    const next = { ...profileRef.current, ...patch };
+    profileRef.current = next;
+    setProfile(next);
+    await saveProfile(next);
+  }, []);
 
   const acceptDisclaimer = useCallback(async () => {
     const next = { ...appState, disclaimerAccepted: true };
